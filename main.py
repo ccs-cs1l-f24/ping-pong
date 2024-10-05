@@ -3,6 +3,7 @@
 import cv2
 import numpy as np
 import mediapipe as mp
+import time
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from mediapipe.framework.formats import landmark_pb2
@@ -13,6 +14,7 @@ from player import Player
 model_path = "pose_landmarker_lite.task"
 
 video_source = 0  # Default webcam
+# video_source = "samples/game_long.mov"  # Default webcam
 
 # Detection parameters
 num_poses = 2  # We need to detect up to two people
@@ -71,23 +73,23 @@ def draw_landmarks_on_image(rgb_image, detection_result):
     # Display counts on the left and right sides
     cv2.putText(
         annotated_image,
-        f"Left Player Raises: {left_count}",
-        (10, 30),
+        f"Player A: {left_count}",
+        (10, 60),
         cv2.FONT_HERSHEY_SIMPLEX,
-        0.8,
-        (0, 255, 0),
         2,
+        (0, 255, 0),
+        8,
         cv2.LINE_AA,
     )
 
     cv2.putText(
         annotated_image,
-        f"Right Player Raises: {right_count}",
-        (image_width - 300, 30),
+        f"Player B: {right_count}",
+        (image_width - 400, 60),
         cv2.FONT_HERSHEY_SIMPLEX,
-        0.8,
-        (0, 255, 0),
         2,
+        (0, 255, 0),
+        8,
         cv2.LINE_AA,
     )
 
@@ -135,6 +137,7 @@ with vision.PoseLandmarker.create_from_options(options) as landmarker:
 
     while cap.isOpened():
         success, image = cap.read()
+
         if not success:
             print("Image capture failed.")
             break

@@ -2,7 +2,7 @@
 
 import time
 
-HAND_RAISE_DURATION_THRESHOLD = 1
+HAND_RAISE_DURATION_THRESHOLD = 0.8
 
 
 class Player:
@@ -32,6 +32,8 @@ class Player:
             else:
                 # Left hand still raised
                 if not self.hand_raise_counted and (current_time - self.hand_raise_start_time) >= HAND_RAISE_DURATION_THRESHOLD:
+                    # Return if we do it too quickly
+
                     # Left hand has been raised long enough
                     self.hand_raise_count += 1
                     self.hand_raise_counted = True
