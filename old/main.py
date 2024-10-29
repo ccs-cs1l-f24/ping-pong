@@ -1,25 +1,32 @@
+# main.py
+
 import cv2
 import numpy as np
 import mediapipe as mp
+import time
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from mediapipe.framework.formats import landmark_pb2
 
-from old.hand_raise_counter import HandRaiseCounter
+from player import Player
 
 # Model path (ensure the model file is in the same directory or provide the correct path)
 model_path = "pose_landmarker_lite.task"
 
 video_source = 0  # Default webcam
+# video_source = "samples/game_long.mov"  # Default webcam
 
 # Detection parameters
-num_poses = 1  # Assuming one person for simplicity
+num_poses = 2  # We need to detect up to two people
 min_pose_detection_confidence = 0.5
 min_pose_presence_confidence = 0.5
 min_tracking_confidence = 0.5
 
+# Initialize players
+players = {'left': Player('left'), 'right': Player('right')}
 
-def draw_landmarks_on_image(rgb_image, detection_result, hand_raise_counter):
+
+def draw_landmarks_on_image(rgb_image, detection_result):
     pose_landmarks_list = detection_result.pose_landmarks
     annotated_image = np.copy(rgb_image)
     image_height, image_width, _ = annotated_image.shape
@@ -51,42 +58,46 @@ def draw_landmarks_on_image(rgb_image, detection_result, hand_raise_counter):
         if pose_landmarks:
             landmarks = pose_landmarks
 
-            # Update hand raise counter
-            hand_raise_counter.update(landmarks)
+            # Determine which side the person is on based on the nose x-coordinate
+            nose = landmarks[0]
+            x_coord = nose.x  # Normalized x coordinate (0.0 to 1.0)
+            side = 'left' if x_coord < 0.5 else 'right'
 
-            # Display counts on the image
-            left_count = hand_raise_counter.left_hand_raise_count
-            right_count = hand_raise_counter.right_hand_raise_count
+            player = players[side]
+            player.update(landmarks)
 
-            # Display counts on the left and right sides
-            cv2.putText(
-                annotated_image,
-                f"Left Hand Raises: {left_count}",
-                (10, 30),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.8,
-                (0, 255, 0),
-                2,
-                cv2.LINE_AA,
-            )
+    # Display counts on the left and right sides
+    left_count = players['left'].hand_raise_count
+    right_count = players['right'].hand_raise_count
 
-            cv2.putText(
-                annotated_image,
-                f"Right Hand Raises: {right_count}",
-                (image_width - 300, 30),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.8,
-                (0, 255, 0),
-                2,
-                cv2.LINE_AA,
-            )
+    # Display counts on the left and right sides
+    cv2.putText(
+        annotated_image,
+        f"Player A: {left_count}",
+        (10, 60),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        2,
+        (0, 255, 0),
+        8,
+        cv2.LINE_AA,
+    )
+
+    cv2.putText(
+        annotated_image,
+        f"Player B: {right_count}",
+        (image_width - 400, 60),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        2,
+        (0, 255, 0),
+        8,
+        cv2.LINE_AA,
+    )
 
     return annotated_image
 
 
 to_window = None
 last_timestamp_ms = 0
-hand_raise_counter = HandRaiseCounter()
 
 
 def print_result(
@@ -102,7 +113,7 @@ def print_result(
 
     # Convert the image and draw landmarks with counts
     annotated_image = draw_landmarks_on_image(
-        output_image.numpy_view(), detection_result, hand_raise_counter
+        output_image.numpy_view(), detection_result
     )
     to_window = cv2.cvtColor(annotated_image, cv2.COLOR_RGB2BGR)
 
@@ -126,6 +137,7 @@ with vision.PoseLandmarker.create_from_options(options) as landmarker:
 
     while cap.isOpened():
         success, image = cap.read()
+
         if not success:
             print("Image capture failed.")
             break

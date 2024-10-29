@@ -3,7 +3,7 @@
 ## Setup
 
 ```
-pip install opencv-python numpy mediapipe
+pip install opencv-python numpy mediapipe ultralytics
 ```
 
 ## Showcase
